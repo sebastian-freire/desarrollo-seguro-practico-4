@@ -13,6 +13,9 @@ interface InvoiceRow {
   status: string;
 }
 
+//Lista de permitidos para mitigar SSRF
+const ALLOWED_PAYMENT_PROVIDERS = ['visa.com', 'mastercard.com', 'paypal.com', 'stripe.com'];
+
 class InvoiceService {
   static async list( userId: string, status?: string, operator?: string): Promise<Invoice[]> {
     let q = db<InvoiceRow>('invoices').where({ userId: userId });
@@ -40,14 +43,18 @@ class InvoiceService {
     ccv: string,
     expirationDate: string
   ) {
-    // use axios to call http://paymentBrand/payments as a POST request
-    // with the body containing ccNumber, ccv, expirationDate
-    // and handle the response accordingly
+
+    // Validacion SSRF
+    if (!ALLOWED_PAYMENT_PROVIDERS.includes(paymentBrand)) {
+      throw new Error('Payment provider not allowed');
+    }
+
     const paymentResponse = await axios.post(`http://${paymentBrand}/payments`, {
       ccNumber,
       ccv,
       expirationDate
     });
+    
     if (paymentResponse.status !== 200) {
       throw new Error('Payment failed');
     }
@@ -57,8 +64,8 @@ class InvoiceService {
       .where({ id: invoiceId, userId })
       .update({ status: 'paid' });  
     };
-  static async  getInvoice( invoiceId:string): Promise<Invoice> {
-    const invoice = await db<InvoiceRow>('invoices').where({ id: invoiceId }).first();
+  static async  getInvoice( invoiceId:string, userId: string): Promise<Invoice> {
+    const invoice = await db<InvoiceRow>('invoices').where({ id: invoiceId, userId: userId }).first();
     if (!invoice) {
       throw new Error('Invoice not found');
     }
@@ -75,8 +82,11 @@ class InvoiceService {
     if (!invoice) {
       throw new Error('Invoice not found');
     }
+
+    const newPdfName = path.basename(pdfName);
+
     try {
-      const filePath = `/invoices/${pdfName}`;
+      const filePath = `/invoices/${newPdfName}`;
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {

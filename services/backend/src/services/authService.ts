@@ -11,6 +11,10 @@ const INVITE_TTL = 1000 * 60 * 60 * 24 * 7; // 7d
 
 class AuthService {
 
+  private static hashPassword(password: string): string {
+    return crypto.createHash('sha256').update(password).digest('hex');
+  }
+
   static async createUser(user: User) {
     const existing = await db<UserRow>('users')
       .where({ username: user.username })
@@ -23,7 +27,7 @@ class AuthService {
     await db<UserRow>('users')
       .insert({
         username: user.username,
-        password: user.password,
+        password: this.hashPassword(user.password),
         email: user.email,
         first_name: user.first_name,
         last_name:  user.last_name,
@@ -45,11 +49,15 @@ class AuthService {
     const template = `
       <html>
         <body>
-          <h1>Hello ${user.first_name} ${user.last_name}</h1>
-          <p>Click <a href="${ link }">here</a> to activate your account.</p>
+          <h1>Hello <%= firstName %> <%= lastName %></h1>
+          <p>Click <a href="<%= link %>">here</a> to activate your account.</p>
         </body>
       </html>`;
-    const htmlBody = ejs.render(template);
+    const htmlBody = ejs.render(template, { 
+      firstName: user.first_name, 
+      lastName: user.last_name, 
+      link: link 
+    });
     
     await transporter.sendMail({
       from: "info@example.com",
@@ -68,7 +76,7 @@ class AuthService {
       .where({ id: user.id })
       .update({
         username: user.username,
-        password: user.password,
+        password: this.hashPassword(user.password),
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name
@@ -82,7 +90,7 @@ class AuthService {
       .andWhere('activated', true)
       .first();
     if (!user) throw new Error('Invalid email or not activated');
-    if (password != user.password) throw new Error('Invalid password');
+    if (this.hashPassword(password) !== user.password) throw new Error('Invalid password');
     return user;
   }
 
@@ -131,7 +139,7 @@ class AuthService {
     await db('users')
       .where({ id: row.id })
       .update({
-        password: newPassword,
+        password: this.hashPassword(newPassword),
         reset_password_token: null,
         reset_password_expires: null
       });
@@ -146,7 +154,7 @@ class AuthService {
 
     await db('users')
       .update({
-        password: newPassword,
+        password: this.hashPassword(newPassword),
         invite_token: null,
         invite_token_expires: null
       })
