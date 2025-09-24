@@ -28,6 +28,7 @@ services:
       - SMTP_PORT=1025
       - SMTP_USER=seed
       - SMTP_PASS=seed
+      - JWT_SECRET=wC+WoDm+HNIn48GrAfIOLvByrcIVrGCIRvhkvaSyTB0=
     restart: unless-stopped
     depends_on:
       postgres:

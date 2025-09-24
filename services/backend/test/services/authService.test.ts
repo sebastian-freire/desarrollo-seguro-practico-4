@@ -1,7 +1,7 @@
-import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
 import AuthService from '../../src/services/authService';
+import jwtUtil from '../../src/utils/jwt';
 import db from '../../src/db';
 import { User } from '../../src/types/user';
 
@@ -344,7 +344,7 @@ describe('AuthService.generateJwt', () => {
     expect(token.length).toBeGreaterThan(0);
 
     // verify the token decodes to our payload
-    const decoded = jwt.verify(token,"secreto_super_seguro");
+    const decoded = jwtUtil.verifyToken(token);
     expect((decoded as any).id).toBe(userId);
   });
 

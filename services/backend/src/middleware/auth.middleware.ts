@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwtUtil from '../utils/jwt';
 
 interface JwtPayload {
   id: string;
@@ -15,7 +15,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, "secreto_super_seguro");
+    const decoded = jwtUtil.verifyToken(token);
     (req as any).user = decoded;
     next();
   } catch (err) {
