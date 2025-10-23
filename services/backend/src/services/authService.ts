@@ -89,7 +89,7 @@ class AuthService {
       .where({ username })
       .andWhere('activated', true)
       .first();
-    if (!user) throw new Error('Invalid email or not activated');
+    if (!user) throw new Error('Invalid username or not activated');
     if (this.hashPassword(password) !== user.password) throw new Error('Invalid password');
     return user;
   }
@@ -156,7 +156,8 @@ class AuthService {
       .update({
         password: this.hashPassword(newPassword),
         invite_token: null,
-        invite_token_expires: null
+        invite_token_expires: null,
+        activated: true
       })
       .where({ id: row.id });
   }

@@ -39,7 +39,7 @@ export default function Login() {
               </label>
               <div className="mt-2">
                 <input
-                  type="username"
+                  type="text"
                   name="username"
                   placeholder="Username"
                   value={creds.username}
