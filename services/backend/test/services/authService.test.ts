@@ -1,3 +1,6 @@
+// Tuvimos que setear esto aca sino los tests fallaban por no encontrar la variable
+process.env.JWT_SECRET = 'test-secret-key';
+
 import nodemailer from 'nodemailer';
 
 import AuthService from '../../src/services/authService';
@@ -348,6 +351,147 @@ describe('AuthService.generateJwt', () => {
     // verify the token decodes to our payload
     const decoded = jwtUtil.verifyToken(token);
     expect((decoded as any).id).toBe(userId);
+  });
+
+
+  // TEST TEMPLATE INJECTION 
+  // Test 1: Verifica que el template injection con sintaxis EJS sea mitigado
+  // Prueba con expresión matemática simple <%= 7*7 %> que debería resultar en 49 si se ejecuta
+  it('createUser - test 1', async () => {
+    const user = {
+      id: 'user-123',
+      email: 'test@test.com',
+      password: 'password123',
+      first_name: '<%= 7*7 %>',
+      last_name: 'Last',
+      username: 'testuser',
+    } as User;
+
+    // mock no user exists
+    const selectChain = {
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+      first: jest.fn().mockResolvedValue(null)
+    };
+    // Mock the database insert
+    const insertChain = {
+      returning: jest.fn().mockResolvedValue([user]),
+      insert: jest.fn().mockReturnThis()
+    };
+    mockedDb
+      .mockReturnValueOnce(selectChain as any)
+      .mockReturnValueOnce(insertChain as any);
+
+    // Call the method to test
+    await AuthService.createUser(user);
+
+    const sendMailCall = (nodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
+    expect(sendMailCall.html).toContain('&lt;%= 7*7 %&gt;');
+  });
+
+  // Test 2: Verifica que el template injection con sintaxis de plantillas JavaScript sea mitigado
+  // Prueba con ${7*7} que es común en template strings de JavaScript
+  it('createUser - test 2', async () => {
+    const user = {
+      id: 'user-456',
+      email: 'test2@test.com',
+      password: 'password123',
+      first_name: 'First',
+      last_name: '${7*7}',
+      username: 'testuser2',
+    } as User;
+
+    // mock no user exists
+    const selectChain = {
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+      first: jest.fn().mockResolvedValue(null)
+    };
+    // Mock the database insert
+    const insertChain = {
+      returning: jest.fn().mockResolvedValue([user]),
+      insert: jest.fn().mockReturnThis()
+    };
+    mockedDb
+      .mockReturnValueOnce(selectChain as any)
+      .mockReturnValueOnce(insertChain as any);
+
+    // Call the method to test
+    await AuthService.createUser(user);
+
+    const sendMailCall = (nodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
+    expect(sendMailCall.html).toContain('${7*7}');
+  });
+
+  // Test 3: Verifica que el template injection con múltiples sintaxis sea mitigado
+  // Prueba con {{7*7}} (Handlebars/Mustache) y #{7*7} (Ruby ERB style)
+  it('createUser - test 3', async () => {
+    const user = {
+      id: 'user-789',
+      email: 'test3@test.com',
+      password: 'password123',
+      first_name: '{{7*7}}',
+      last_name: '#{7*7}',
+      username: 'testuser3',
+    } as User;
+
+    // mock no user exists
+    const selectChain = {
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+      first: jest.fn().mockResolvedValue(null)
+    };
+    // Mock the database insert
+    const insertChain = {
+      returning: jest.fn().mockResolvedValue([user]),
+      insert: jest.fn().mockReturnThis()
+    };
+    mockedDb
+      .mockReturnValueOnce(selectChain as any)
+      .mockReturnValueOnce(insertChain as any);
+
+    // Call the method to test
+    await AuthService.createUser(user);
+
+    const sendMailCall = (nodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
+    expect(sendMailCall.html).toContain('{{7*7}}');
+    expect(sendMailCall.html).toContain('#{7*7}'); 
+  });
+
+  // Test 4: Verifica que el contenido seguro se renderice correctamente en el template
+  // Confirma que datos normales de usuario se procesen sin problemas en el email
+  it('createUser - test 4', async () => {
+    const user = {
+      id: 'user-safe',
+      email: 'safe@test.com',
+      password: 'password123',
+      first_name: 'John',
+      last_name: 'Doe',
+      username: 'johndoe',
+    } as User;
+
+    // mock no user exists
+    const selectChain = {
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+      first: jest.fn().mockResolvedValue(null)
+    };
+    // Mock the database insert
+    const insertChain = {
+      returning: jest.fn().mockResolvedValue([user]),
+      insert: jest.fn().mockReturnThis()
+    };
+    mockedDb
+      .mockReturnValueOnce(selectChain as any)
+      .mockReturnValueOnce(insertChain as any);
+
+    // Call the method to test
+    await AuthService.createUser(user);
+
+    const sendMailCall = (nodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
+    expect(sendMailCall.html).toContain('<h1>Hello John Doe</h1>');
+    expect(sendMailCall.html).toContain('Click <a href=');
+    expect(sendMailCall.html).toContain('activate-user?token=');
   });
 
 });
