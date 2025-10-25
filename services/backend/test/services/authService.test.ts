@@ -530,12 +530,12 @@ describe('AuthService.generateJwt', () => {
   // Confirma que datos normales de usuario se procesen sin problemas en el email
   it('createUser - test 6', async () => {
     const user = {
-      id: 'user-safe',
-      email: 'safe@test.com',
+      id: 'user-456',
+      email: 'pedro@test.com',
       password: 'password123',
-      first_name: 'John',
-      last_name: 'Doe',
-      username: 'johndoe',
+      first_name: 'Pedro',
+      last_name: 'Picapiedra',
+      username: 'pedropica',
     } as User;
 
     // mock no user exists
@@ -557,7 +557,7 @@ describe('AuthService.generateJwt', () => {
     await AuthService.createUser(user);
 
     const sendMailCall = (nodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
-    expect(sendMailCall.html).toContain('<h1>Hello John Doe</h1>');
+    expect(sendMailCall.html).toContain('<h1>Hello Pedro Picapiedra</h1>');
     expect(sendMailCall.html).toContain('Click <a href=');
     expect(sendMailCall.html).toContain('activate-user?token=');
   });
