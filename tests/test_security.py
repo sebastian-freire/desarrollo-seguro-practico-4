@@ -66,6 +66,14 @@ def test_login(setup_create_user):
     auth_token = response.json()["token"]
     assert auth_token
 
+def get_auth_token(setup_create_user):
+    username = setup_create_user[0]
+    password = setup_create_user[1]
+    
+    response = requests.post("http://localhost:5000/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200
+    return response.json()["token"]
+
 # Test 1: Valida que OR bypass clásico no funcione
 # Comprueba que ' OR 1=1 -- no retorne facturas de otros usuarios
 # Si vulnerable: WHERE status = 'paid' OR 1=1 -- trae todas las facturas
@@ -75,16 +83,15 @@ def test_invoices_status_filter(setup_create_user):
     token = get_auth_token(setup_create_user)
     headers = {"Authorization": f"Bearer {token}"}
     
-    status = "paid' OR 1=1 --"
-    response = requests.get(
-        f"http://localhost:5000/invoices",
-        params={"status": status, "operator": "="},
-        headers=headers
-    )
+    # Misma URL que usamos en el practico 2
+    url = "http://localhost:5000/invoices?status=paid%27%20or%201=1%20--&operator=="
+    response = requests.get(url, headers=headers)
     
     assert response.status_code == 200
     invoices = response.json()
     assert isinstance(invoices, list)
+    assert len(invoices) == 0 # Esto es lo que hace que falle, ya que no deberia traer nada de un usuario sin facturas
+
 
 # Test 2: Valida que UNION SELECT no extraiga datos sensibles
 # Verifica que no se filtren passwords o datos de usuarios
@@ -95,41 +102,48 @@ def test_invoices_union_query(setup_create_user):
     token = get_auth_token(setup_create_user)
     headers = {"Authorization": f"Bearer {token}"}
     
-    status = "paid' UNION SELECT id, username, email, password, 'test' FROM users --"
-    response = requests.get(
-        f"http://localhost:5000/invoices",
-        params={"status": status, "operator": "="},
-        headers=headers
-    )
+    # UNION SELECT ajustado para tipos de datos de la BD
+    url = "http://localhost:5000/invoices?status=paid%27%20UNION%20SELECT%20id,%20id,%20%27100.00%27::decimal,%20CURRENT_DATE,%20username%20FROM%20users%20--&operator=="
+    response = requests.get(url, headers=headers)
     
     assert response.status_code == 200
     invoices = response.json()
     assert isinstance(invoices, list)
     
+    # Buscar usernames filtrados
+    usernames_found = []
     for invoice in invoices:
-        assert "username" not in str(invoice).lower()
-        assert "password" not in str(invoice).lower()
-        assert "test" not in str(invoice).lower()
+        if 'status' in invoice and invoice['status'] not in ['paid', 'unpaid']:
+            usernames_found.append(invoice['status'])
+    
+    assert len(usernames_found) == 0
+
 
 # Test 3: Valida que time-based injection no funcione
-# Verifica que WAITFOR DELAY no se ejecute retardando la respuesta
-# Si vulnerable: SELECT * FROM invoices; WAITFOR DELAY '00:00:05' (tarda 5 seg)
-# Si mitigado: WAITFOR no se ejecuta, respuesta inmediata (< 2 seg)
+# Verifica que pg_sleep no se ejecute retardando la respuesta
+# Si vulnerable: tarda varios segundos en devolvernos la respuesta
+# Si mitigado: respuesta inmediata
 def test_invoices_timing(setup_create_user):
     
     token = get_auth_token(setup_create_user)
     headers = {"Authorization": f"Bearer {token}"}
     
-    status = "paid'; WAITFOR DELAY '00:00:05' --"
+    # pg_sleep para PostgreSQL
+    url = "http://localhost:5000/invoices?status=paid%27%20AND%20(SELECT%20pg_sleep(3))%20IS%20NULL%20--&operator=="
     
     import time
     start_time = time.time()
-    response = requests.get(
-        f"http://localhost:5000/invoices",
-        params={"status": status, "operator": "="},
-        headers=headers
-    )
+    response = requests.get(url, headers=headers)
     end_time = time.time()
     
-    assert (end_time - start_time) < 2
+    execution_time = end_time - start_time
+    
     assert response.status_code == 200
+    assert execution_time < 1
+
+    # Todas las url las usamos del practico 2, donde habiamos estado probando varias inyecciones SQL
+    # posibles. Las habiamos realizado con curl con ayuda de IA. Pero como ya lo teniamos, decidimos usarlo
+    # para generar mejores tests y no solo el test basico de or 1=1.
+
+    # Todas las url las ponemos directamente en url encodeadas para evitar problemas de interpretacion al pasarlas por requests.
+    # Ya que esto nos genero varios problemas al principio.
