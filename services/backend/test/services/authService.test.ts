@@ -1,3 +1,6 @@
+// Tuvimos que setear esto aca sino los tests fallaban por no encontrar la variable
+process.env.JWT_SECRET = 'test-secret-key';
+
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
