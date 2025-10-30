@@ -355,6 +355,21 @@ describe('AuthService.generateJwt', () => {
 
 
   // TEST TEMPLATE INJECTION 
+  //npm test -- authService.test.ts -t "test 1"
+  //npm test -- authService.test.ts -t "test 2"
+  //npm test -- authService.test.ts -t "test 3"
+  //npm test -- authService.test.ts -t "test 4"
+  //npm test -- authService.test.ts -t "test 5"
+  //npm test -- authService.test.ts -t "test 6"
+  // Estos test estan todos mitigados, asi que corren los 6 sin problema.
+
+  // Hay unos test generados por ustedes que son de unas contraseñas, que nosotros
+  // agregamos un sistema de hashing de contraseñas, por lo que esos test fallan.
+  // Se nos fue comentado que esos no debiamos de tocarlos.
+
+  // https://www.vaadata.com/blog/server-side-template-injection-vulnerability-what-it-is-how-to-prevent-it
+  // De esta pagina web obtuvimos ideas para generar los test de template injection.
+
   // Test 1: Verifica que el template injection con sintaxis EJS sea mitigado
   // Prueba con expresión matemática simple <%= 7*7 %> que debería resultar en 49 si se ejecuta
   it('createUser - test 1', async () => {
