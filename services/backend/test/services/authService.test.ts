@@ -360,6 +360,10 @@ describe('AuthService.generateJwt', () => {
   //npm test -- authService.test.ts -t "test 4"
   //npm test -- authService.test.ts -t "test 5"
   //npm test -- authService.test.ts -t "test 6"
+
+  // https://www.vaadata.com/blog/server-side-template-injection-vulnerability-what-it-is-how-to-prevent-it
+  // De esta pagina web obtuvimos ideas para generar los test de template injection.
+
   // Test 1: Verifica que el template injection con sintaxis EJS sea mitigado
   // Prueba con expresión matemática simple <%= 7*7 %> que debería resultar en 49 si se ejecuta
   // Este test debe Fallar
