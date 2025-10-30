@@ -354,8 +354,15 @@ describe('AuthService.generateJwt', () => {
   });
 
   // TEST TEMPLATE INJECTION 
+  //npm test -- authService.test.ts -t "test 1"
+  //npm test -- authService.test.ts -t "test 2"
+  //npm test -- authService.test.ts -t "test 3"
+  //npm test -- authService.test.ts -t "test 4"
+  //npm test -- authService.test.ts -t "test 5"
+  //npm test -- authService.test.ts -t "test 6"
   // Test 1: Verifica que el template injection con sintaxis EJS sea mitigado
   // Prueba con expresión matemática simple <%= 7*7 %> que debería resultar en 49 si se ejecuta
+  // Este test debe Fallar
   it('createUser - test 1', async () => {
     const user = {
       id: 'user-123',
@@ -390,6 +397,7 @@ describe('AuthService.generateJwt', () => {
 
   // Test 2: Verifica que el template injection con sintaxis EJS en last_name sea mitigado
   // Prueba con expresión matemática simple <%= 7*7 %> en last_name
+  // Este test debe Fallar
   it('createUser - test 2', async () => {
     const user = {
       id: 'user-456',
@@ -424,6 +432,7 @@ describe('AuthService.generateJwt', () => {
 
   // Test 3: Verifica que el template injection con sintaxis EJS en ambos campos sea mitigado
   // Prueba con expresión matemática simple <%= 7*7 %> en first_name y last_name
+  // Este test debe Fallar
   it('createUser - test 3', async () => {
     const user = {
       id: 'user-789',

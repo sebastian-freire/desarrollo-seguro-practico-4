@@ -74,10 +74,10 @@ def get_auth_token(setup_create_user):
     assert response.status_code == 200
     return response.json()["token"]
 
-# Test 1: Valida que OR bypass clásico no funcione
+# Test 1: Valida que OR no funcione
 # Comprueba que ' OR 1=1 -- no retorne facturas de otros usuarios
-# Si vulnerable: WHERE status = 'paid' OR 1=1 -- trae todas las facturas
-# Si mitigado: WHERE status = 'paid\' OR 1=1 --' no trae todas las facturas
+# Si es vulnerable: WHERE status = 'paid' OR 1=1 -- trae todas las facturas
+# Si esta mitigado: WHERE status = 'paid\' OR 1=1 --' no trae todas las facturas
 def test_invoices_status_filter(setup_create_user):
     
     token = get_auth_token(setup_create_user)
@@ -95,8 +95,8 @@ def test_invoices_status_filter(setup_create_user):
 
 # Test 2: Valida que UNION SELECT no extraiga datos sensibles
 # Verifica que no se filtren passwords o datos de usuarios
-# Si vulnerable: SELECT * FROM invoices UNION SELECT id,username,email,password FROM users
-# Si mitigado: Input se parametriza, UNION no se ejecuta
+# Si es vulnerable: SELECT * FROM invoices UNION SELECT id,username,email,password FROM users
+# Si esta mitigado: Input se parametriza, UNION no se ejecuta
 def test_invoices_union_query(setup_create_user):
     
     token = get_auth_token(setup_create_user)
@@ -110,7 +110,7 @@ def test_invoices_union_query(setup_create_user):
     invoices = response.json()
     assert isinstance(invoices, list)
     
-    # Buscar usernames filtrados
+    # Buscar usernames filtrados para luego contarlos
     usernames_found = []
     for invoice in invoices:
         if 'status' in invoice and invoice['status'] not in ['paid', 'unpaid']:
@@ -121,8 +121,8 @@ def test_invoices_union_query(setup_create_user):
 
 # Test 3: Valida que time-based injection no funcione
 # Verifica que pg_sleep no se ejecute retardando la respuesta
-# Si vulnerable: tarda varios segundos en devolvernos la respuesta
-# Si mitigado: respuesta inmediata
+# Si es vulnerable: tarda varios segundos en devolvernos la respuesta
+# Si esta mitigado: respuesta inmediata
 def test_invoices_timing(setup_create_user):
     
     token = get_auth_token(setup_create_user)
@@ -147,3 +147,6 @@ def test_invoices_timing(setup_create_user):
 
     # Todas las url las ponemos directamente en url encodeadas para evitar problemas de interpretacion al pasarlas por requests.
     # Ya que esto nos genero varios problemas al principio.
+
+    # https://scidsg.medium.com/safeguarding-your-application-a-practical-guide-to-sql-injection-testing-833b76ac996a
+    # De aca sacamos ideas de que test hacer para probar la seguridad contra inyeccion SQL.
